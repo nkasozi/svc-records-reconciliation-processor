@@ -5,11 +5,12 @@ use crate::internal::{
     },
     interfaces::{
         file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
-        pubsub_repo::PubSubRepositoryInterface, recon_tasks_repo::ReconTasksRepositoryInterface,
+        pubsub_repo::PubSubRepositoryInterface,
+        recon_tasks_repo::ReconTasksDetailsRetrieverInterface,
     },
     view_models::{
-        reconcile_file_chunk_request::ReconcileFileChunkRequest,
-        reconcile_file_chunk_response::ReconcileFileChunkResponse,
+        requests::reconcile_file_chunk_request::ReconcileFileChunkRequest,
+        responses::reconcile_file_chunk_response::ReconcileFileChunkResponse,
     },
 };
 use async_trait::async_trait;
@@ -20,7 +21,7 @@ const FILE_CHUNK_PREFIX: &'static str = "FILE-CHUNK";
 
 pub struct FileChunkReconciliationService {
     pub pubsub_repo: Box<dyn PubSubRepositoryInterface>,
-    pub recon_tasks_repo: Box<dyn ReconTasksRepositoryInterface>,
+    pub recon_tasks_repo: Box<dyn ReconTasksDetailsRetrieverInterface>,
 }
 
 #[async_trait]
@@ -50,7 +51,7 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
         //save it to the repository
         let primary_file_recon_task_details = self
             .recon_tasks_repo
-            .get_primary_recon_task_details(primary_file_chunk.upload_request_id)
+            .get_primary_recon_task_details(primary_file_chunk.upload_request_id.clone())
             .await?;
 
         //save it to the repository
@@ -65,8 +66,8 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
             for comparison_chunk_row in comparison_file_chunk.chunk_rows.clone() {
                 let comparison_file_row_parts: Vec<&str> = primary_chunk_row.split(',').collect();
 
-                for primary_file_column_in_row in primary_file_row_parts{
-                    if 
+                for primary_file_column_in_row in primary_file_row_parts.clone() {
+                    //if
                 }
             }
         }

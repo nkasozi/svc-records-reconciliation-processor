@@ -2,8 +2,9 @@ mod external;
 mod internal;
 
 use crate::external::pubsub::dapr_pubsub::DaprPubSubRepositoryManager;
+use crate::external::repositories::dapr_recon_tasks_repo::ReconTasksDetailsRetriever;
 use crate::internal::entities::app_error::AppErrorKind;
-use crate::internal::view_models::reconcile_file_chunk_request::ReconcileFileChunkRequest;
+use crate::internal::view_models::requests::reconcile_file_chunk_request::ReconcileFileChunkRequest;
 use crate::internal::{
     interfaces::file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
     services::file_upload_service::FileChunkReconciliationService,
@@ -30,7 +31,9 @@ struct AppSettings {
 
     pub dapr_pubsub_topic: String,
 
-    pub dapr_grpc_server_address: String,
+    pub dapr_grpc_server_ip_address: String,
+
+    pub dapr_recon_task_details_service_name: String,
 }
 
 #[actix_web::main]
@@ -48,9 +51,13 @@ async fn main() -> std::io::Result<()> {
         let service: Box<dyn FileChunkReconciliationServiceInterface> =
             Box::new(FileChunkReconciliationService {
                 pubsub_repo: Box::new(DaprPubSubRepositoryManager {
-                    dapr_grpc_server_address: app_settings.dapr_grpc_server_address.clone(),
+                    dapr_grpc_server_address: app_settings.dapr_grpc_server_ip_address.clone(),
                     dapr_pubsub_name: app_settings.dapr_pubsub_name.clone(),
                     dapr_pubsub_topic: app_settings.dapr_pubsub_topic.clone(),
+                }),
+                recon_tasks_repo: Box::new(ReconTasksDetailsRetriever {
+                    dapr_grpc_server_address: app_settings.dapr_grpc_server_ip_address.clone(),
+                    dapr_service_name: app_settings.dapr_recon_task_details_service_name.clone(),
                 }),
             });
 
@@ -70,13 +77,16 @@ fn read_app_settings() -> AppSettings {
 
         app_ip: std::env::var("APP_IP").unwrap_or(DEFAULT_APP_LISTEN_IP.to_string()),
 
-        dapr_pubsub_name: std::env::var("PUBSUB_NAME")
+        dapr_pubsub_name: std::env::var("DAPR_PUBSUB_NAME")
             .unwrap_or(DEFAULT_DAPR_PUBSUB_NAME.to_string()),
 
-        dapr_pubsub_topic: std::env::var("PUBSUB_TOPIC")
+        dapr_pubsub_topic: std::env::var("DAPR_PUBSUB_TOPIC")
             .unwrap_or(DEFAULT_DAPR_PUBSUB_TOPIC.to_string()),
 
-        dapr_grpc_server_address: std::env::var("DAPR_IP")
+        dapr_grpc_server_ip_address: std::env::var("DAPR_IP")
+            .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
+
+        dapr_recon_task_details_service_name: std::env::var("DAPR_RECON_TASK_DETAILS_SERVICE_NAME")
             .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
     }
 }

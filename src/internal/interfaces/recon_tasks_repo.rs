@@ -4,7 +4,7 @@ use mockall::automock;
 
 #[automock]
 #[async_trait]
-pub trait ReconTasksRepositoryInterface: Send + Sync {
+pub trait ReconTasksDetailsRetrieverInterface: Send + Sync {
     async fn get_primary_recon_task_details(
         &self,
         task_id: String,

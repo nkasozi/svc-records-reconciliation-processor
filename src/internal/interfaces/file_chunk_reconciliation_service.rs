@@ -1,8 +1,8 @@
 use crate::internal::{
     entities::app_error::AppError,
     view_models::{
-        reconcile_file_chunk_request::ReconcileFileChunkRequest,
-        reconcile_file_chunk_response::ReconcileFileChunkResponse,
+        requests::reconcile_file_chunk_request::ReconcileFileChunkRequest,
+        responses::reconcile_file_chunk_response::ReconcileFileChunkResponse,
     },
 };
 use async_trait::async_trait;
