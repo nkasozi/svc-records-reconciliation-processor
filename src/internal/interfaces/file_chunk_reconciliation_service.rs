@@ -1,9 +1,9 @@
 use crate::internal::{
-    entities::app_error::AppError,
-    view_models::{
+    models::view_models::{
         requests::reconcile_file_chunk_request::ReconcileFileChunkRequest,
         responses::reconcile_file_chunk_response::ReconcileFileChunkResponse,
     },
+    shared_reconciler_rust_libraries::models::entities::app_errors::AppError,
 };
 use async_trait::async_trait;
 use mockall::automock;

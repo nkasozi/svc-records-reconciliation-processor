@@ -1,16 +1,16 @@
 use crate::internal::{
-    entities::{
-        app_error::{AppError, AppErrorKind},
-        file_upload_chunk::FileUploadChunk,
-    },
     interfaces::{
         file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
         pubsub_repo::PubSubRepositoryInterface,
         recon_tasks_repo::ReconTasksDetailsRetrieverInterface,
     },
-    view_models::{
+    models::view_models::{
         requests::reconcile_file_chunk_request::ReconcileFileChunkRequest,
         responses::reconcile_file_chunk_response::ReconcileFileChunkResponse,
+    },
+    shared_reconciler_rust_libraries::models::entities::{
+        app_errors::{AppError, AppErrorKind},
+        file_upload_chunk::FileUploadChunk,
     },
 };
 use async_trait::async_trait;
@@ -35,10 +35,10 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
     */
     async fn reconcile_file_chunk(
         &self,
-        primary_file_chunk: &ReconcileFileChunkRequest,
+        reconcile_primary_file_chunk_request: &ReconcileFileChunkRequest,
     ) -> Result<ReconcileFileChunkResponse, AppError> {
         //validate request
-        match primary_file_chunk.validate() {
+        match reconcile_primary_file_chunk_request.validate() {
             Ok(_) => (),
             Err(e) => {
                 return Err(AppError::new(
@@ -48,24 +48,43 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
             }
         }
 
-        //save it to the repository
+        //get the reconciliation task details
         let primary_file_recon_task_details = self
             .recon_tasks_repo
-            .get_primary_recon_task_details(primary_file_chunk.upload_request_id.clone())
+            .get_recon_task_details(
+                reconcile_primary_file_chunk_request
+                    .primary_file_chunk
+                    .upload_request_id
+                    .clone(),
+            )
             .await?;
 
-        //save it to the repository
+        //go get the next chunk from the comparison file
         let comparison_file_chunk = self
             .pubsub_repo
             .get_next_comparison_file_upload_chunk()
             .await?;
 
-        for primary_chunk_row in primary_file_chunk.chunk_rows.clone() {
-            let primary_file_row_parts: Vec<&str> = primary_chunk_row.split(',').collect();
+        //for each row in the primary file chunk
+        for primary_chunk_row in reconcile_primary_file_chunk_request
+            .primary_file_chunk
+            .chunk_rows
+        {
+            //we get all the columns in the primary chunk row
+            let primary_file_row_parts = primary_chunk_row.parsed_columns_from_row.clone();
             //if primary_file_row_parts.len() != primary_file_recon_task_details.
-            for comparison_chunk_row in comparison_file_chunk.chunk_rows.clone() {
-                let comparison_file_row_parts: Vec<&str> = primary_chunk_row.split(',').collect();
 
+            //for each row in the comparison file chnk
+            for comparison_chunk_row in comparison_file_chunk.chunk_rows {
+                //we get all the columns in the comparison chunk row
+                let comparison_file_row_parts =
+                    comparison_chunk_row.parsed_columns_from_row.clone();
+
+                //we then check if this is supposed to be the same row in both files
+                //by checking the identity columns in the comparison comparison_pairs
+
+                //if its supposed to be the same row, we can begin checking each column in the primary file row
+                //vs each column in the comparison file row
                 for primary_file_column_in_row in primary_file_row_parts.clone() {
                     //if
                 }
@@ -87,12 +106,32 @@ impl FileChunkReconciliationService {
     ) -> FileUploadChunk {
         FileUploadChunk {
             id: self.generate_uuid(FILE_CHUNK_PREFIX),
-            upload_request_id: upload_file_chunk_request.upload_request_id.clone(),
-            chunk_sequence_number: upload_file_chunk_request.chunk_sequence_number.clone(),
-            chunk_source: upload_file_chunk_request.chunk_source.clone(),
-            chunk_rows: upload_file_chunk_request.chunk_rows.clone(),
+            upload_request_id: upload_file_chunk_request
+                .primary_file_chunk
+                .upload_request_id
+                .clone(),
+            chunk_sequence_number: upload_file_chunk_request
+                .primary_file_chunk
+                .chunk_sequence_number
+                .clone(),
+            chunk_source: upload_file_chunk_request
+                .primary_file_chunk
+                .chunk_source
+                .clone(),
+            chunk_rows: upload_file_chunk_request
+                .primary_file_chunk
+                .chunk_rows
+                .clone(),
             date_created: chrono::Utc::now().timestamp(),
             date_modified: chrono::Utc::now().timestamp(),
+            comparison_pairs: upload_file_chunk_request
+                .primary_file_chunk
+                .comparison_pairs
+                .clone(),
+            recon_config: upload_file_chunk_request
+                .primary_file_chunk
+                .recon_config
+                .clone(),
         }
     }
 

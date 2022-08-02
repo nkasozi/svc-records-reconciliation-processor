@@ -3,11 +3,11 @@ mod internal;
 
 use crate::external::pubsub::dapr_pubsub::DaprPubSubRepositoryManager;
 use crate::external::repositories::dapr_recon_tasks_repo::ReconTasksDetailsRetriever;
-use crate::internal::entities::app_error::AppErrorKind;
-use crate::internal::view_models::requests::reconcile_file_chunk_request::ReconcileFileChunkRequest;
+use crate::internal::models::view_models::requests::reconcile_file_chunk_request::ReconcileFileChunkRequest;
+use crate::internal::shared_reconciler_rust_libraries::models::entities::app_errors::AppErrorKind;
 use crate::internal::{
     interfaces::file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
-    services::file_upload_service::FileChunkReconciliationService,
+    services::file_chunk_reconciliation_service::FileChunkReconciliationService,
 };
 use actix_web::{
     post,

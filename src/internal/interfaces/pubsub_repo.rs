@@ -1,4 +1,6 @@
-use crate::internal::entities::{app_error::AppError, file_upload_chunk::FileUploadChunk};
+use crate::internal::shared_reconciler_rust_libraries::models::entities::{
+    app_errors::AppError, file_upload_chunk::FileUploadChunk,
+};
 use async_trait::async_trait;
 use mockall::automock;
 
