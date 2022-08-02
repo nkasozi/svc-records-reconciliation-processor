@@ -69,13 +69,14 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
         for primary_chunk_row in reconcile_primary_file_chunk_request
             .primary_file_chunk
             .chunk_rows
+            .clone()
         {
             //we get all the columns in the primary chunk row
             let primary_file_row_parts = primary_chunk_row.parsed_columns_from_row.clone();
             //if primary_file_row_parts.len() != primary_file_recon_task_details.
 
             //for each row in the comparison file chnk
-            for comparison_chunk_row in comparison_file_chunk.chunk_rows {
+            for comparison_chunk_row in comparison_file_chunk.chunk_rows.clone() {
                 //we get all the columns in the comparison chunk row
                 let comparison_file_row_parts =
                     comparison_chunk_row.parsed_columns_from_row.clone();
