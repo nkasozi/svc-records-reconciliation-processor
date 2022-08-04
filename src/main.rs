@@ -2,8 +2,8 @@ mod external;
 mod internal;
 
 use crate::external::pubsub::dapr_pubsub::DaprPubSubRepositoryManager;
-use crate::external::repositories::dapr_recon_tasks_repo::ReconTasksDetailsRetriever;
 use crate::internal::models::view_models::requests::reconcile_file_chunk_request::ReconcileFileChunkRequest;
+use crate::internal::services::generic_file_reconciliation_algorithm::GenericFileReconciliationAlgorithm;
 use crate::internal::shared_reconciler_rust_libraries::models::entities::app_errors::AppErrorKind;
 use crate::internal::{
     interfaces::file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
@@ -32,8 +32,6 @@ struct AppSettings {
     pub dapr_pubsub_topic: String,
 
     pub dapr_grpc_server_ip_address: String,
-
-    pub dapr_recon_task_details_service_name: String,
 }
 
 #[actix_web::main]
@@ -55,10 +53,7 @@ async fn main() -> std::io::Result<()> {
                     dapr_pubsub_name: app_settings.dapr_pubsub_name.clone(),
                     dapr_pubsub_topic: app_settings.dapr_pubsub_topic.clone(),
                 }),
-                recon_tasks_repo: Box::new(ReconTasksDetailsRetriever {
-                    dapr_grpc_server_address: app_settings.dapr_grpc_server_ip_address.clone(),
-                    dapr_service_name: app_settings.dapr_recon_task_details_service_name.clone(),
-                }),
+                file_reconciliation_algorithm: Box::new(GenericFileReconciliationAlgorithm {}),
             });
 
         // add shared state and routing
@@ -84,9 +79,6 @@ fn read_app_settings() -> AppSettings {
             .unwrap_or(DEFAULT_DAPR_PUBSUB_TOPIC.to_string()),
 
         dapr_grpc_server_ip_address: std::env::var("DAPR_IP")
-            .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
-
-        dapr_recon_task_details_service_name: std::env::var("DAPR_RECON_TASK_DETAILS_SERVICE_NAME")
             .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
     }
 }

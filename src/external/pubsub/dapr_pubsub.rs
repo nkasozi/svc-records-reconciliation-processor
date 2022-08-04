@@ -30,6 +30,28 @@ impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
         //call the binding
         todo!()
     }
+
+    async fn mark_comparison_file_chunk_as_processed(
+        &self,
+        _file_chunk: &FileUploadChunk,
+    ) -> Result<bool, AppError> {
+        //create a dapr client
+        let mut _client = self.get_dapr_connection().await?;
+
+        //call the binding
+        todo!()
+    }
+
+    async fn insert_file_chunk_in_primary_file_queue(
+        &self,
+        _file_chunk: &FileUploadChunk,
+    ) -> Result<bool, AppError> {
+        //create a dapr client
+        let mut _client = self.get_dapr_connection().await?;
+
+        //call the binding
+        todo!()
+    }
 }
 
 impl DaprPubSubRepositoryManager {
