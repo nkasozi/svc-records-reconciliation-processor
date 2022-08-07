@@ -1,6 +1,9 @@
 use crate::internal::{
-    entities::{app_error::AppError, app_error::AppErrorKind, file_upload_chunk::FileUploadChunk},
     interfaces::pubsub_repo::PubSubRepositoryInterface,
+    shared_reconciler_rust_libraries::models::entities::{
+        app_errors::{AppError, AppErrorKind},
+        file_upload_chunk::FileUploadChunk,
+    },
 };
 use async_trait::async_trait;
 use dapr::{dapr::dapr::proto::runtime::v1::dapr_client::DaprClient, Client};
@@ -21,6 +24,28 @@ pub struct DaprPubSubRepositoryManager {
 #[async_trait]
 impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
     async fn get_next_comparison_file_upload_chunk(&self) -> Result<FileUploadChunk, AppError> {
+        //create a dapr client
+        let mut _client = self.get_dapr_connection().await?;
+
+        //call the binding
+        todo!()
+    }
+
+    async fn mark_comparison_file_chunk_as_processed(
+        &self,
+        _file_chunk: &FileUploadChunk,
+    ) -> Result<bool, AppError> {
+        //create a dapr client
+        let mut _client = self.get_dapr_connection().await?;
+
+        //call the binding
+        todo!()
+    }
+
+    async fn insert_file_chunk_in_primary_file_queue(
+        &self,
+        _file_chunk: &FileUploadChunk,
+    ) -> Result<bool, AppError> {
         //create a dapr client
         let mut _client = self.get_dapr_connection().await?;
 
