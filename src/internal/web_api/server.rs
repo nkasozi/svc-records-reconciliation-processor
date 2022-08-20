@@ -10,6 +10,7 @@ use actix_web::{web::Data, App, HttpServer};
 
 // constants
 const DEFAULT_DAPR_CONNECTION_URL: &'static str = "http://localhost:5005";
+const DEFAULT_REDIS_CONNECTION_URL: &'static str = "http://localhost:5005";
 const DEFAULT_DAPR_PUBSUB_NAME: &'static str = "FileChunksQueue";
 const DEFAULT_DAPR_PUBSUB_TOPIC: &'static str = "FileChunks";
 const DEFAULT_APP_LISTEN_IP: &'static str = "0.0.0.0";
@@ -26,6 +27,8 @@ struct AppSettings {
     pub dapr_pubsub_topic: String,
 
     pub dapr_grpc_server_ip_address: String,
+
+    pub redis_url: String,
 }
 
 pub async fn run_async() -> Result<(), std::io::Error> {
@@ -65,6 +68,8 @@ fn read_app_settings() -> AppSettings {
 
         dapr_grpc_server_ip_address: std::env::var("DAPR_IP")
             .unwrap_or(DEFAULT_DAPR_CONNECTION_URL.to_string()),
+
+        redis_url: std::env::var("REDIS_URL").unwrap_or(DEFAULT_REDIS_CONNECTION_URL.to_string()),
     }
 }
 
@@ -75,6 +80,7 @@ fn setup_service(app_settings: AppSettings) -> Box<dyn FileChunkReconciliationSe
                 dapr_grpc_server_address: app_settings.dapr_grpc_server_ip_address.clone(),
                 dapr_pubsub_name: app_settings.dapr_pubsub_name.clone(),
                 dapr_pubsub_topic: app_settings.dapr_pubsub_topic.clone(),
+                redis_url: app_settings.redis_url.clone(),
             }),
             file_reconciliation_algorithm: Box::new(GenericFileReconciliationAlgorithm {}),
         });

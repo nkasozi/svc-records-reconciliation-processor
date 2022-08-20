@@ -42,6 +42,7 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
             }
         }
 
+        //get a mutable handle to the primary file chunk
         let mut primary_file_chunk = reconcile_primary_file_chunk_request
             .primary_file_chunk
             .clone();
@@ -49,11 +50,11 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
         //go get the next chunk from the comparison file
         let comparison_file_chunk = self
             .pubsub_repo
-            .get_next_comparison_file_upload_chunk()
+            .get_next_comparison_file_upload_chunk(&primary_file_chunk.comparison_file_chunks_queue)
             .await?;
 
         //we reconcile the primary file chunk
-        let reconciled_primary_file_chunk = self
+        let mut reconciled_primary_file_chunk = self
             .file_reconciliation_algorithm
             .reconcile_primary_file_chunk(&mut primary_file_chunk, &comparison_file_chunk)
             .await?;
@@ -65,12 +66,20 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
             .mark_comparison_file_chunk_as_processed(&comparison_file_chunk)
             .await?;
 
+        //if we fail to mark the comparison file chunk as processed
+        //we return an error
         if !is_processed {
             return Err(AppError::new(
                 AppErrorKind::InternalError,
                 String::from("failed to mark comparison file chunk as processed"),
             ));
         }
+
+        //we update the primary file chunk to point to track this comparison file chunks ID
+        //as the last_acknowledged_id
+        reconciled_primary_file_chunk
+            .comparison_file_chunks_queue
+            .last_acknowledged_id = Some(comparison_file_chunk.id);
 
         //we insert this primary file chunk back into the buttom of the primary file queue
         let is_inserted = self

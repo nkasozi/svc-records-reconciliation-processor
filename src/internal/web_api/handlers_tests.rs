@@ -14,6 +14,7 @@ use crate::internal::{
     },
     shared_reconciler_rust_libraries::models::entities::{
         app_errors::{AppError, AppErrorKind},
+        file_chunk_queue::FileChunkQueue,
         file_upload_chunk::{FileUploadChunk, FileUploadChunkSource},
         recon_tasks_models::ReconciliationConfigs,
     },
@@ -132,6 +133,18 @@ fn get_dummy_request() -> ReconcileFileChunkRequest {
                 should_reconciliation_be_case_sensitive: true,
                 should_ignore_white_space: true,
                 should_do_reverse_reconciliation: true,
+            },
+            primary_file_chunks_queue: FileChunkQueue {
+                topic_id: String::from("src-file-chunks-queue-1"),
+                last_acknowledged_id: Option::None,
+            },
+            comparison_file_chunks_queue: FileChunkQueue {
+                topic_id: String::from("cmp-file-chunks-queue-1"),
+                last_acknowledged_id: Option::None,
+            },
+            result_chunks_queue: FileChunkQueue {
+                topic_id: String::from("results-file-chunks-queue-1"),
+                last_acknowledged_id: Option::None,
             },
         },
     }
