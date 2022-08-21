@@ -1,5 +1,5 @@
 use crate::external::pubsub::dapr_pubsub::DaprPubSubRepositoryManager;
-use crate::internal::services::generic_file_reconciliation_algorithm::GenericFileReconciliationAlgorithm;
+use crate::internal::services::core_logic::generic_file_reconciliation_algorithm::GenericFileReconciliationAlgorithm;
 
 use crate::internal::web_api::handlers;
 use crate::internal::{
