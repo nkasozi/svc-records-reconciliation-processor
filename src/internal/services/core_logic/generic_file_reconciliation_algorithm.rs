@@ -46,7 +46,7 @@ impl FileReconciliationAlgorithmInterface for GenericFileReconciliationAlgorithm
 
                 //we then check if this is supposed to be the same row in both files
                 //by checking the identity columns in the comparison comparison_pairs
-                if !self.is_same_row_in_both_files(
+                if !self.are_same_row_identifiers(
                     &primary_file_row_parts,
                     &comparison_file_row_parts,
                     &row_id_comparison_pairs,
@@ -81,13 +81,13 @@ impl FileReconciliationAlgorithmInterface for GenericFileReconciliationAlgorithm
                     //ok its time to compare actual values in the row
                     //so we read the column value from the primary file
                     let primary_file_row_column_value = primary_file_row_parts
-                        .get(pair.source_column_index)
+                        .get(pair.primary_file_column_index)
                         .map(|s| s.to_owned())
                         .unwrap_or(String::from(""));
 
                     //and we also read the column value from the comparison file
-                    let comparison_file_row_column_value = primary_file_row_parts
-                        .get(pair.comparison_column_index)
+                    let comparison_file_row_column_value = comparison_file_row_parts
+                        .get(pair.comparison_file_column_index)
                         .map(|s| s.to_owned())
                         .unwrap_or(String::from(""));
 
@@ -102,13 +102,13 @@ impl FileReconciliationAlgorithmInterface for GenericFileReconciliationAlgorithm
 
                         let primary_file_column_header = primary_file_chunk
                             .column_headers
-                            .get(pair.source_column_index)
+                            .get(pair.primary_file_column_index)
                             .map(|s| s.to_owned())
                             .unwrap_or(String::from(""));
 
                         let comparison_file_column_header = comparison_file_chunk
                             .column_headers
-                            .get(pair.comparison_column_index)
+                            .get(pair.comparison_file_column_index)
                             .map(|s| s.to_owned())
                             .unwrap_or(String::from(""));
 
@@ -132,7 +132,7 @@ impl FileReconciliationAlgorithmInterface for GenericFileReconciliationAlgorithm
                 }
 
                 //record is still pending reconciliation but all the column values in the row are a perfect match
-                if primary_chunk_row.recon_result == ReconStatus::Pending {
+                if primary_file_chunk.chunk_rows[index].recon_result == ReconStatus::Pending {
                     primary_file_chunk.chunk_rows[index].recon_result = ReconStatus::Successful;
                     continue;
                 }
@@ -145,7 +145,7 @@ impl FileReconciliationAlgorithmInterface for GenericFileReconciliationAlgorithm
 
 impl GenericFileReconciliationAlgorithm {
     //checks to see if 2 string column values from a row in 2 different files are the same
-    fn is_same_row_in_both_files(
+    pub fn are_same_row_identifiers(
         &self,
         primary_file_row_parts: &Vec<String>,
         comparison_file_row_parts: &Vec<String>,
@@ -155,13 +155,13 @@ impl GenericFileReconciliationAlgorithm {
         for pair in row_id_comparison_pairs {
             //so we read the column value from the primary file
             let primary_file_row_column_value = primary_file_row_parts
-                .get(pair.source_column_index)
+                .get(pair.primary_file_column_index)
                 .map(|s| s.to_owned())
                 .unwrap_or(String::from(""));
 
             //and we also read the column value from the comparison file
             let comparison_file_row_column_value = comparison_file_row_parts
-                .get(pair.comparison_column_index)
+                .get(pair.comparison_file_column_index)
                 .map(|s| s.to_owned())
                 .unwrap_or(String::from(""));
 
@@ -178,19 +178,30 @@ impl GenericFileReconciliationAlgorithm {
     }
 
     //checks to see if 2 string column values from a row in 2 different files are the same
-    fn are_column_values_the_same(
+    pub fn are_column_values_the_same(
         &self,
         primary_file_row_column_value: &String,
         comparison_file_row_column_value: &String,
         recon_configs: &ReconciliationConfigs,
     ) -> bool {
-        if recon_configs.should_reconciliation_be_case_sensitive {
-            return primary_file_row_column_value
+        let mut sanitized_primary_file_row_column_value = primary_file_row_column_value.clone();
+        let mut sanitized_comparison_file_row_column_value =
+            comparison_file_row_column_value.clone();
+
+        if recon_configs.should_ignore_white_space {
+            sanitized_comparison_file_row_column_value = sanitized_comparison_file_row_column_value
                 .trim()
-                .eq(comparison_file_row_column_value.trim());
+                .to_string();
+            sanitized_primary_file_row_column_value =
+                sanitized_primary_file_row_column_value.trim().to_string()
         }
-        return primary_file_row_column_value
-            .trim()
-            .eq_ignore_ascii_case(comparison_file_row_column_value.trim());
+
+        if recon_configs.should_reconciliation_be_case_sensitive {
+            return sanitized_primary_file_row_column_value
+                .eq(&sanitized_comparison_file_row_column_value);
+        }
+
+        return sanitized_primary_file_row_column_value
+            .eq_ignore_ascii_case(&sanitized_comparison_file_row_column_value);
     }
 }
