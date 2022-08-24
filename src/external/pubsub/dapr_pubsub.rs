@@ -83,6 +83,32 @@ impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
             Err(e) => return Err(AppError::new(AppErrorKind::NotFound, e.to_string())),
         }
     }
+
+    async fn insert_file_chunk_into_recon_results_queue(
+        &self,
+        file_chunk: &FileUploadChunk,
+    ) -> Result<bool, AppError> {
+        //create a dapr client
+        let mut client = self.get_dapr_connection().await?;
+
+        //call the binding
+        let pubsub_name = self.dapr_pubsub_name.clone();
+        let pubsub_topic = file_chunk.result_chunks_queue.topic_id.clone();
+        let data_content_type = "json".to_string();
+        let data = serde_json::to_vec(&file_chunk).unwrap();
+        let metadata = None::<HashMap<String, String>>;
+        let binding_response = client
+            .publish_event(pubsub_name, pubsub_topic, data_content_type, data, metadata)
+            .await;
+
+        //handle the bindings response
+        match binding_response {
+            //success
+            Ok(_) => return Ok(true),
+            //failure
+            Err(e) => return Err(AppError::new(AppErrorKind::NotFound, e.to_string())),
+        }
+    }
 }
 
 impl DaprPubSubRepositoryManager {

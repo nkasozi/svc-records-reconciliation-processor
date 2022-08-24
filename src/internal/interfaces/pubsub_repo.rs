@@ -11,11 +11,18 @@ pub trait PubSubRepositoryInterface: Send + Sync {
         &self,
         queue: &FileChunkQueue,
     ) -> Result<FileUploadChunk, AppError>;
+
     async fn mark_comparison_file_chunk_as_processed(
         &self,
         file_chunk: &FileUploadChunk,
     ) -> Result<bool, AppError>;
+
     async fn insert_file_chunk_in_primary_file_queue(
+        &self,
+        file_chunk: &FileUploadChunk,
+    ) -> Result<bool, AppError>;
+
+    async fn insert_file_chunk_into_recon_results_queue(
         &self,
         file_chunk: &FileUploadChunk,
     ) -> Result<bool, AppError>;

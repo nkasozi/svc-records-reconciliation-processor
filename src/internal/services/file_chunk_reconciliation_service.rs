@@ -8,7 +8,10 @@ use crate::internal::{
         requests::reconcile_file_chunk_request::ReconcileFileChunkRequest,
         responses::reconcile_file_chunk_response::ReconcileFileChunkResponse,
     },
-    shared_reconciler_rust_libraries::models::entities::app_errors::{AppError, AppErrorKind},
+    shared_reconciler_rust_libraries::models::entities::{
+        app_errors::{AppError, AppErrorKind},
+        file_upload_chunk::FileUploadChunk,
+    },
 };
 use async_trait::async_trait;
 use validator::Validate;
@@ -81,12 +84,61 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
             .comparison_file_chunks_queue
             .last_acknowledged_id = Some(comparison_file_chunk.id);
 
-        //we insert this primary file chunk back into the buttom of the primary file queue
+        //if the comparison file chunk we got was actually
+        //the last one in the comparison file, it means reconciliation is done
+        if comparison_file_chunk.is_last_chunk {
+            return self
+                .insert_into_recon_results_queue(&reconciled_primary_file_chunk)
+                .await;
+        }
+
+        //we insert this primary file chunk back into the
+        //buttom of the primary file queue
+        return self
+            .reinsert_into_primary_file_chunks_queue(&reconciled_primary_file_chunk)
+            .await;
+    }
+}
+
+impl FileChunkReconciliationService {
+    //handles insertion of a file chunk into the recon results queue
+    //as well as any errors from that process
+    async fn insert_into_recon_results_queue(
+        &self,
+        reconciled_primary_file_chunk: &FileUploadChunk,
+    ) -> Result<ReconcileFileChunkResponse, AppError> {
+        let is_inserted = self
+            .pubsub_repo
+            .insert_file_chunk_into_recon_results_queue(&reconciled_primary_file_chunk)
+            .await?;
+
+        //failed to insert
+        if !is_inserted {
+            return Err(AppError::new(
+                AppErrorKind::InternalError,
+                String::from("failed to insert primary file chunk to bottom of ReconResultsQueue"),
+            ));
+        }
+
+        //we then return success such that its removed
+        //from the top of the primary file queue
+        return Ok(ReconcileFileChunkResponse {
+            file_chunk_id: reconciled_primary_file_chunk.id.clone(),
+        });
+    }
+
+    //handles insertion of a file chunk into the primary file queue
+    //as well as any errors from that process
+    async fn reinsert_into_primary_file_chunks_queue(
+        &self,
+        reconciled_primary_file_chunk: &FileUploadChunk,
+    ) -> Result<ReconcileFileChunkResponse, AppError> {
         let is_inserted = self
             .pubsub_repo
             .insert_file_chunk_in_primary_file_queue(&reconciled_primary_file_chunk)
             .await?;
 
+        //failed to insert
         if !is_inserted {
             return Err(AppError::new(
                 AppErrorKind::InternalError,
@@ -94,9 +146,10 @@ impl FileChunkReconciliationServiceInterface for FileChunkReconciliationService 
             ));
         }
 
-        //we then return success such that its removed from the top of the primary file queue
+        //we then return success such that its removed from
+        //the top of the primary file queue
         return Ok(ReconcileFileChunkResponse {
-            file_chunk_id: reconciled_primary_file_chunk.id,
+            file_chunk_id: reconciled_primary_file_chunk.id.clone(),
         });
     }
 }

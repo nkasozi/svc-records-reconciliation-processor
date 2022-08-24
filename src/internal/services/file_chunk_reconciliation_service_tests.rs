@@ -22,18 +22,22 @@ async fn given_valid_request_calls_correct_dependencies() {
 
     mock_pubsub_repo
         .expect_get_next_comparison_file_upload_chunk()
+        .times(1)
         .returning(|_y| Ok(dummy_comparison_file()));
 
     mock_file_recon_algo
         .expect_reconcile_primary_file_chunk()
+        .times(1)
         .returning(|_y, _x| Ok(dummy_reconciled_file_upload_chunk()));
 
     mock_pubsub_repo
         .expect_mark_comparison_file_chunk_as_processed()
+        .times(1)
         .returning(|_y| Ok(true));
 
     mock_pubsub_repo
         .expect_insert_file_chunk_in_primary_file_queue()
+        .times(1)
         .returning(|_y| Ok(true));
 
     let sut = setup(mock_pubsub_repo, mock_file_recon_algo);
@@ -121,6 +125,7 @@ fn get_dummy_valid_request() -> ReconcileFileChunkRequest {
                 topic_id: String::from("results-file-chunks-queue-1"),
                 last_acknowledged_id: Option::None,
             },
+            is_last_chunk: false,
         },
     }
 }
@@ -166,6 +171,7 @@ fn dummy_reconciled_file_upload_chunk() -> FileUploadChunk {
             topic_id: String::from("results-file-chunks-queue-1"),
             last_acknowledged_id: Option::None,
         },
+        is_last_chunk: false,
     }
 }
 
@@ -193,5 +199,6 @@ fn dummy_comparison_file() -> FileUploadChunk {
             topic_id: String::from("results-file-chunks-queue-1"),
             last_acknowledged_id: Option::None,
         },
+        is_last_chunk: false,
     }
 }
