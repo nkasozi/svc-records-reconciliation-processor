@@ -25,18 +25,15 @@ pub struct DaprPubSubRepositoryManager {
     //the dapr pub sub component name
     pub dapr_pubsub_name: String,
 
-    //the dapr pub sub topic
-    pub dapr_pubsub_topic: String,
-
     //the redis url
     pub redis_url: String,
 }
 
 #[async_trait]
 impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
-    async fn get_next_comparison_file_upload_chunk(
-        &self,
-        queue: &FileChunkQueue,
+    async fn get_next_comparison_file_upload_chunk<'a>(
+        &'a self,
+        queue: &'a FileChunkQueue,
     ) -> Result<FileUploadChunk, AppError> {
         let mut redis_connection = self.get_redis_connection().await?;
 
@@ -46,9 +43,9 @@ impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
         return self.deserialize_stream_reply(&read_reply).await;
     }
 
-    async fn mark_comparison_file_chunk_as_processed(
-        &self,
-        _file_chunk: &FileUploadChunk,
+    async fn mark_comparison_file_chunk_as_processed<'a>(
+        &'a self,
+        _file_chunk: &'a FileUploadChunk,
     ) -> Result<bool, AppError> {
         //since we are using redis streams without consumer groups
         //we do not need to acknowledge messages
@@ -58,9 +55,9 @@ impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
         return Ok(true);
     }
 
-    async fn insert_file_chunk_in_primary_file_queue(
-        &self,
-        file_chunk: &FileUploadChunk,
+    async fn insert_file_chunk_in_primary_file_queue<'a>(
+        &'a self,
+        file_chunk: &'a FileUploadChunk,
     ) -> Result<bool, AppError> {
         //create a dapr client
         let mut client = self.get_dapr_connection().await?;
@@ -68,6 +65,32 @@ impl PubSubRepositoryInterface for DaprPubSubRepositoryManager {
         //call the binding
         let pubsub_name = self.dapr_pubsub_name.clone();
         let pubsub_topic = file_chunk.primary_file_chunks_queue.topic_id.clone();
+        let data_content_type = "json".to_string();
+        let data = serde_json::to_vec(&file_chunk).unwrap();
+        let metadata = None::<HashMap<String, String>>;
+        let binding_response = client
+            .publish_event(pubsub_name, pubsub_topic, data_content_type, data, metadata)
+            .await;
+
+        //handle the bindings response
+        match binding_response {
+            //success
+            Ok(_) => return Ok(true),
+            //failure
+            Err(e) => return Err(AppError::new(AppErrorKind::NotFound, e.to_string())),
+        }
+    }
+
+    async fn insert_file_chunk_into_recon_results_queue<'a>(
+        &'a self,
+        file_chunk: &'a FileUploadChunk,
+    ) -> Result<bool, AppError> {
+        //create a dapr client
+        let mut client = self.get_dapr_connection().await?;
+
+        //call the binding
+        let pubsub_name = self.dapr_pubsub_name.clone();
+        let pubsub_topic = file_chunk.result_chunks_queue.topic_id.clone();
         let data_content_type = "json".to_string();
         let data = serde_json::to_vec(&file_chunk).unwrap();
         let metadata = None::<HashMap<String, String>>;

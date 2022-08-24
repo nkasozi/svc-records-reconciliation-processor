@@ -11,8 +11,8 @@ use mockall::automock;
 #[automock]
 #[async_trait]
 pub trait FileChunkReconciliationServiceInterface: Send + Sync {
-    async fn reconcile_file_chunk(
-        &self,
-        primary_file_chunk: &ReconcileFileChunkRequest,
+    async fn reconcile_file_chunk<'a>(
+        &'a self,
+        primary_file_chunk: &'a ReconcileFileChunkRequest,
     ) -> Result<ReconcileFileChunkResponse, AppError>;
 }

@@ -146,6 +146,7 @@ fn get_dummy_request() -> ReconcileFileChunkRequest {
                 topic_id: String::from("results-file-chunks-queue-1"),
                 last_acknowledged_id: Option::None,
             },
+            is_last_chunk: false,
         },
     }
 }

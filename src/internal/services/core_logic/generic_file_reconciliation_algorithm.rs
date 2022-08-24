@@ -13,10 +13,10 @@ pub struct GenericFileReconciliationAlgorithm {}
 
 #[async_trait]
 impl FileReconciliationAlgorithmInterface for GenericFileReconciliationAlgorithm {
-    async fn reconcile_primary_file_chunk(
-        &self,
-        primary_file_chunk: &mut FileUploadChunk,
-        comparison_file_chunk: &FileUploadChunk,
+    async fn reconcile_primary_file_chunk<'a>(
+        &'a self,
+        primary_file_chunk: &'a mut FileUploadChunk,
+        comparison_file_chunk: &'a FileUploadChunk,
     ) -> Result<FileUploadChunk, AppError> {
         //for each row in the primary file chunk
         for (index, primary_chunk_row) in primary_file_chunk

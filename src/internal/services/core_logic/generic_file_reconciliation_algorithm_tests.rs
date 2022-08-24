@@ -307,6 +307,7 @@ fn build_valid_file_chunk(prefix: &str) -> FileUploadChunk {
         primary_file_chunks_queue: build_file_chunks_queue("primary"),
         comparison_file_chunks_queue: build_file_chunks_queue("comparison"),
         result_chunks_queue: build_file_chunks_queue("result"),
+        is_last_chunk: false,
     }
 }
 

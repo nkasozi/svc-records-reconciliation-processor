@@ -9,7 +9,7 @@ use crate::internal::{
 #[automock]
 #[async_trait]
 pub trait ReconTasksDetailsRetrieverInterface: Send + Sync {
-    async fn get_recon_task_details(
+    async fn get_recon_task_details<'a>(
         &self,
         task_id: String,
     ) -> Result<ReconTaskResponseDetails, AppError>;

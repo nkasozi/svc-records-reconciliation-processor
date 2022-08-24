@@ -1,3 +1,5 @@
+use super::file_chunk_reconciliation_service::FileChunkReconciliationService;
+
 use crate::internal::{
     interfaces::{
         file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
@@ -13,8 +15,6 @@ use crate::internal::{
     },
 };
 
-use super::file_chunk_reconciliation_service::FileChunkReconciliationService;
-
 #[actix_web::test]
 async fn given_valid_request_calls_correct_dependencies() {
     //setup
@@ -22,7 +22,58 @@ async fn given_valid_request_calls_correct_dependencies() {
 
     mock_pubsub_repo
         .expect_get_next_comparison_file_upload_chunk()
+        .times(1)
         .returning(|_y| Ok(dummy_comparison_file()));
+
+    mock_file_recon_algo
+        .expect_reconcile_primary_file_chunk()
+        .times(1)
+        .returning(|_y, _x| Ok(dummy_reconciled_file_upload_chunk()));
+
+    mock_pubsub_repo
+        .expect_mark_comparison_file_chunk_as_processed()
+        .times(1)
+        .returning(|_y| Ok(true));
+
+    mock_pubsub_repo
+        .expect_insert_file_chunk_in_primary_file_queue()
+        .times(1)
+        .returning(|_y| Ok(true));
+
+    // mock_pubsub_repo
+    //     .expect_insert_file_chunk_into_recon_results_queue()
+    //     .times(1)
+    //     .returning(|_y| Ok(true));
+
+    let sut = setup(&mock_pubsub_repo, &mock_file_recon_algo);
+
+    let request = get_dummy_valid_request();
+
+    //act
+    let actual = sut.reconcile_file_chunk(&request).await;
+
+    //assert
+    assert_eq!(actual.is_ok(), true);
+
+    mock_pubsub_repo.checkpoint()
+}
+
+#[actix_web::test]
+async fn given_valid_request_and_is_last_comparison_chunk_calls_correct_dependencies() {
+    //setup
+    let (mut mock_pubsub_repo, mut mock_file_recon_algo) = setup_dependencies();
+
+    mock_pubsub_repo
+        .expect_get_next_comparison_file_upload_chunk()
+        .returning(|_y| {
+            let mut comparison_file = dummy_comparison_file();
+            comparison_file.is_last_chunk = true;
+            Ok(comparison_file)
+        });
+
+    mock_pubsub_repo
+        .expect_insert_file_chunk_into_recon_results_queue()
+        .returning(|_| Ok(true));
 
     mock_file_recon_algo
         .expect_reconcile_primary_file_chunk()
@@ -36,7 +87,7 @@ async fn given_valid_request_calls_correct_dependencies() {
         .expect_insert_file_chunk_in_primary_file_queue()
         .returning(|_y| Ok(true));
 
-    let sut = setup(mock_pubsub_repo, mock_file_recon_algo);
+    let sut = setup(&mock_pubsub_repo, &mock_file_recon_algo);
 
     let request = get_dummy_valid_request();
 
@@ -64,7 +115,7 @@ async fn given_valid_request_but_call_to_dependency_fails_returns_error() {
             ))
         });
 
-    let sut = setup(mock_pubsub_repo, mock_file_recon_algo);
+    let sut = setup(&mock_pubsub_repo, &mock_file_recon_algo);
 
     let request = get_dummy_valid_request();
 
@@ -85,13 +136,13 @@ fn setup_dependencies() -> (
     return (mock_pubsub_repo, mock_file_recon_algo);
 }
 
-fn setup(
-    mock_pubsub_repo: Box<MockPubSubRepositoryInterface>,
-    mock_file_recon_algo: Box<MockFileReconciliationAlgorithmInterface>,
-) -> FileChunkReconciliationService {
+fn setup<'a>(
+    mock_pubsub_repo: &'a Box<MockPubSubRepositoryInterface>,
+    mock_file_recon_algo: &'a Box<MockFileReconciliationAlgorithmInterface>,
+) -> FileChunkReconciliationService<'a> {
     let sut = FileChunkReconciliationService {
-        pubsub_repo: mock_pubsub_repo,
-        file_reconciliation_algorithm: mock_file_recon_algo,
+        pubsub_repo: mock_pubsub_repo.as_ref(),
+        file_reconciliation_algorithm: mock_file_recon_algo.as_ref(),
     };
     return sut;
 }
@@ -121,6 +172,7 @@ fn get_dummy_valid_request() -> ReconcileFileChunkRequest {
                 topic_id: String::from("results-file-chunks-queue-1"),
                 last_acknowledged_id: Option::None,
             },
+            is_last_chunk: false,
         },
     }
 }
@@ -166,6 +218,7 @@ fn dummy_reconciled_file_upload_chunk() -> FileUploadChunk {
             topic_id: String::from("results-file-chunks-queue-1"),
             last_acknowledged_id: Option::None,
         },
+        is_last_chunk: false,
     }
 }
 
@@ -193,5 +246,6 @@ fn dummy_comparison_file() -> FileUploadChunk {
             topic_id: String::from("results-file-chunks-queue-1"),
             last_acknowledged_id: Option::None,
         },
+        is_last_chunk: false,
     }
 }
