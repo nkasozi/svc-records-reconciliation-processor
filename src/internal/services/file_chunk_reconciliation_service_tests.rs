@@ -40,6 +40,56 @@ async fn given_valid_request_calls_correct_dependencies() {
         .times(1)
         .returning(|_y| Ok(true));
 
+    mock_pubsub_repo
+        .expect_insert_file_chunk_into_recon_results_queue()
+        .times(0)
+        .returning(|_y| Ok(true));
+
+    let sut = setup(mock_pubsub_repo, mock_file_recon_algo);
+
+    let request = get_dummy_valid_request();
+
+    //act
+    let actual = sut.reconcile_file_chunk(&request).await;
+
+    //assert
+    assert_eq!(actual.is_ok(), true);
+}
+
+#[actix_web::test]
+async fn given_valid_request_and_last_comparison_file_chunk_calls_correct_dependencies() {
+    //setup
+    let (mut mock_pubsub_repo, mut mock_file_recon_algo) = setup_dependencies();
+
+    mock_pubsub_repo
+        .expect_get_next_comparison_file_upload_chunk()
+        .times(1)
+        .returning(|_y| {
+            let mut comparison_file_chunk = dummy_comparison_file();
+            comparison_file_chunk.is_last_chunk = true;
+            Ok(comparison_file_chunk)
+        });
+
+    mock_file_recon_algo
+        .expect_reconcile_primary_file_chunk()
+        .times(1)
+        .returning(|_y, _x| Ok(dummy_reconciled_file_upload_chunk()));
+
+    mock_pubsub_repo
+        .expect_mark_comparison_file_chunk_as_processed()
+        .times(1)
+        .returning(|_y| Ok(true));
+
+    mock_pubsub_repo
+        .expect_insert_file_chunk_in_primary_file_queue()
+        .times(0)
+        .returning(|_y| Ok(true));
+
+    mock_pubsub_repo
+        .expect_insert_file_chunk_into_recon_results_queue()
+        .times(1)
+        .returning(|_y| Ok(true));
+
     let sut = setup(mock_pubsub_repo, mock_file_recon_algo);
 
     let request = get_dummy_valid_request();
@@ -61,6 +111,7 @@ async fn given_valid_request_but_call_to_dependency_fails_returns_error() {
 
     mock_pubsub_repo
         .expect_get_next_comparison_file_upload_chunk()
+        .times(1)
         .returning(|_y| {
             Err(AppError::new(
                 AppErrorKind::ConnectionError,
