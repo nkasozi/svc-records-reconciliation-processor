@@ -2,7 +2,7 @@ use crate::internal::{
     interfaces::{
         file_chunk_reconciliation_service::FileChunkReconciliationServiceInterface,
         file_reconciliation_algorithm::FileReconciliationAlgorithmInterface,
-        pubsub_repo::PubSubRepositoryInterface,
+        pubsub_repository::PubSubRepositoryInterface,
     },
     models::view_models::{
         requests::reconcile_file_chunk_request::ReconcileFileChunkRequest,

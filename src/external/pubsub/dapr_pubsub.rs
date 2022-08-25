@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::internal::{
-    interfaces::pubsub_repo::PubSubRepositoryInterface,
+    interfaces::pubsub_repository::PubSubRepositoryInterface,
     models::view_models::responses::redis_stream_message::RedisStreamMessage,
     shared_reconciler_rust_libraries::models::entities::{
         app_errors::{AppError, AppErrorKind},
